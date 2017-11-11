@@ -1,6 +1,5 @@
 six==1.11.0
 wxPython==4.0.0b2
 pydux==0.2.2
-wxmplot==0.9.27
 numpy==1.13.3
 matplotlib==2.1.0
