@@ -16,6 +16,14 @@ class mainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.OnQuit, quitItem)
 
+        panel = wx.Panel(self)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        popupButton = wx.Button(panel, label='Popup')
+        drawButton = wx.Button(panel, label='Draw')
+        hbox.Add(popupButton, 1, wx.EXPAND)
+        hbox.Add(drawButton, 1, wx.EXPAND)
+        panel.SetSizer(hbox)
+
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
         self.Show()
