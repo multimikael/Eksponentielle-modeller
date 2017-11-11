@@ -2,6 +2,7 @@ import wx
 import wx.grid
 import wxmplot
 import numpy as np
+import pydux
 
 class GridFrame(wx.Frame):
     def __init__(self, parent, **kwargs):
@@ -16,9 +17,10 @@ class GridFrame(wx.Frame):
         self.Show()
 class MainFrame(wx.Frame):
 
-    def __init__(self, *args, **kwargs):
-        super(MainFrame, self).__init__(*args, **kwargs)
-
+    def __init__(self, parent, _store, **kwargs):
+        super(MainFrame, self).__init__(parent, **kwargs)
+        self.store = _store
+        self.store.subscribe(self.OnStoreChange)
         self.OnCreate()
 
     def OnCreate(self):
@@ -60,9 +62,14 @@ class MainFrame(wx.Frame):
         GridFrame(self)
 
     def OnDrawButton(self, event):
+        self.store.dispatch({'type': ''})
+
+    def OnStoreChange(self):
         x = np.linspace(0.0, 10.0, 100.0)
         self._plotPanel.plot(x, np.exp(x**2.0), title='Expo test', xmax=10.0, ymax=10.0)
 
+store = pydux.create_store(lambda state, action: True if state is None else not state)
+store.subscribe(lambda: print(store.get_state()))
 app = wx.App()
-MainFrame(None)
+MainFrame(None, store)
 app.MainLoop()
