@@ -1,5 +1,7 @@
 import wx
 import wx.grid
+import wxmplot
+import numpy as np
 
 class GridFrame(wx.Frame):
     def __init__(self, parent, **kwargs):
@@ -28,16 +30,25 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.OnQuit, quitItem)
 
-        panel = wx.Panel(self)
+        mainPanel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self._plotPanel = wxmplot.plotpanel.PlotPanel(mainPanel, size=(1, 1))
+
+        btnPanel = wx.Panel(mainPanel)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        popupButton = wx.Button(panel, label='Popup')
-        drawButton = wx.Button(panel, label='Draw')
-        hbox.Add(popupButton, 1, wx.EXPAND)
-        hbox.Add(drawButton, 1, wx.EXPAND)
-        panel.SetSizer(hbox)
+        popupBtn = wx.Button(btnPanel, label='Popup')
+        drawBtn = wx.Button(btnPanel, label='Draw')
+        hbox.Add(popupBtn, 1, wx.EXPAND)
+        hbox.Add(drawBtn, 1, wx.EXPAND)
+        btnPanel.SetSizer(hbox)
 
-        popupButton.Bind(wx.EVT_BUTTON, self.OnPopupButton)
+        popupBtn.Bind(wx.EVT_BUTTON, self.OnPopupButton)
+        drawBtn.Bind(wx.EVT_BUTTON, self.OnDrawButton)
 
+        vbox.Add(self._plotPanel, 3, wx.EXPAND)
+        vbox.Add(btnPanel, 1, wx.EXPAND)
+        mainPanel.SetSizer(vbox)
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
         self.Show()
@@ -47,6 +58,10 @@ class MainFrame(wx.Frame):
 
     def OnPopupButton(self, event):
         GridFrame(self)
+
+    def OnDrawButton(self, event):
+        x = np.linspace(0.0, 10.0, 100.0)
+        self._plotPanel.plot(x, np.exp(x**2.0), title='Expo test', xmax=10.0, ymax=10.0)
 
 app = wx.App()
 MainFrame(None)
