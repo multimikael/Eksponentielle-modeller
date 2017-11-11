@@ -1,9 +1,21 @@
 import wx
+import wx.grid
 
-class mainFrame(wx.Frame):
+class GridFrame(wx.Frame):
+    def __init__(self, parent, **kwargs):
+        super(GridFrame, self).__init__(parent, **kwargs)
+
+        self.OnCreate()
+
+    def OnCreate(self):
+        grid = wx.grid.Grid(self)
+        grid.CreateGrid(10, 2)
+
+        self.Show()
+class MainFrame(wx.Frame):
 
     def __init__(self, *args, **kwargs):
-        super(mainFrame, self).__init__(*args, **kwargs)
+        super(MainFrame, self).__init__(*args, **kwargs)
 
         self.OnCreate()
 
@@ -24,6 +36,8 @@ class mainFrame(wx.Frame):
         hbox.Add(drawButton, 1, wx.EXPAND)
         panel.SetSizer(hbox)
 
+        popupButton.Bind(wx.EVT_BUTTON, self.OnPopupButton)
+
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
         self.Show()
@@ -31,6 +45,9 @@ class mainFrame(wx.Frame):
     def OnQuit(self, event):
         self.Close()
 
+    def OnPopupButton(self, event):
+        GridFrame(self)
+
 app = wx.App()
-mainFrame(None)
+MainFrame(None)
 app.MainLoop()
