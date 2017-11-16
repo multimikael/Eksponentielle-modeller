@@ -56,6 +56,10 @@ class MainFrame(wx.Frame):
         inputVbox.Add(deviationHbox, 0, wx.EXPAND|wx.ALL, 6)
         inputVbox.Add(filterCheckBox, 0, wx.ALL)
 
+        graphsText = wx.StaticText(mainPanel, label='Graphs', style=wx.ALIGN_CENTRE_HORIZONTAL)
+
+        graphVbox.Add(graphsText, 0, wx.EXPAND)
+
         hboxInputGraph.Add(inputVbox, 3, wx.EXPAND|wx.ALL)
         hboxInputGraph.Add(graphVbox, 1, wx.EXPAND|wx.ALL)
         mainPanel.SetSizer(hboxInputGraph)
