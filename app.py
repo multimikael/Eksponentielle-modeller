@@ -25,11 +25,16 @@ class MainFrame(wx.Frame):
     def OnCreate(self):
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
-        quitItem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit Application')
+        resetItem = fileMenu.Append(wx.ID_RESET, 'Reset', 'Reset Fields')
+        exitItem = fileMenu.Append(wx.ID_EXIT, 'Exit', 'Exit Application')
+        helpMenu = wx.Menu()
+        manualItem = helpMenu.Append(wx.ID_HELP_PROCEDURES, 'Manual', 'Manual to the program')
+        aboutItem = helpMenu.Append(wx.ID_ABOUT, 'About', 'About the program')
         menubar.Append(fileMenu, '&File')
+        menubar.Append(helpMenu, '&Help')
         self.SetMenuBar(menubar)
 
-        self.Bind(wx.EVT_MENU, self.OnQuit, quitItem)
+        self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
 
         mainPanel = wx.Panel(self)
         
@@ -37,7 +42,7 @@ class MainFrame(wx.Frame):
         self.Centre()
         self.Show()
 
-    def OnQuit(self, event):
+    def OnExit(self, event):
         self.Close()
 
 store = pydux.create_store(lambda state, action: True if state is None else not state)
