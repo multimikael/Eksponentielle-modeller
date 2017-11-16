@@ -35,8 +35,30 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
 
         self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
-
+        
         mainPanel = wx.Panel(self)
+        hboxInputGraph = wx.BoxSizer(wx.HORIZONTAL)
+        graphVbox = wx.BoxSizer(wx.VERTICAL)
+        inputVbox = wx.BoxSizer(wx.VERTICAL)
+
+        dataBtn = wx.Button(mainPanel, label='View Data')
+        deviationHbox = wx.BoxSizer(wx.HORIZONTAL)
+        deviationText = wx.StaticText(mainPanel, label='Maximum Deviation: ')
+        deviationSpinCtrl = wx.SpinCtrl(mainPanel)
+        deviationSpinCtrl.SetRange(0, 100)
+
+        deviationHbox.Add(deviationText, 0, wx.ALL)
+        deviationHbox.Add(deviationSpinCtrl, 1, wx.EXPAND|wx.ALL)
+        
+        filterCheckBox = wx.CheckBox(mainPanel, label='Filter out first and last', style=wx.ALIGN_RIGHT)
+
+        inputVbox.Add(dataBtn, 0, wx.EXPAND|wx.ALL, 5)
+        inputVbox.Add(deviationHbox, 0, wx.EXPAND|wx.ALL, 6)
+        inputVbox.Add(filterCheckBox, 0, wx.ALL)
+
+        hboxInputGraph.Add(inputVbox, 3, wx.EXPAND|wx.ALL)
+        hboxInputGraph.Add(graphVbox, 1, wx.EXPAND|wx.ALL)
+        mainPanel.SetSizer(hboxInputGraph)
         
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
