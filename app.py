@@ -26,9 +26,13 @@ class GridFrame(wx.Frame):
         resetBtn = wx.Button(panel, label='Reset')
 
         plusBtn.Bind(wx.EVT_BUTTON, lambda event: grid.InsertRows(numRows=1))
-        minusBtn.Bind(wx.EVT_BUTTON, lambda event: grid.DeleteRows(numRows=1) if grid.GetNumberRows() > 3 else False)
+        minusBtn.Bind(
+            wx.EVT_BUTTON,
+            lambda event: grid.DeleteRows(numRows=1) if grid.GetNumberRows() > 3 else False)
         plus10Btn.Bind(wx.EVT_BUTTON, lambda event: grid.InsertRows(numRows=10))
-        minus10Btn.Bind(wx.EVT_BUTTON, lambda event: grid.DeleteRows(numRows=10) if grid.GetNumberRows() > 12 else False)
+        minus10Btn.Bind(
+            wx.EVT_BUTTON,
+            lambda event: grid.DeleteRows(numRows=10) if grid.GetNumberRows() > 12 else False)
 
         inputHbox.AddMany([
             (plusBtn, 0, wx.ALL),
@@ -39,7 +43,7 @@ class GridFrame(wx.Frame):
         ])
 
         vbox.Add(grid, 1, wx.EXPAND)
-        vbox.Add(inputHbox, 0, wx.ALL) 
+        vbox.Add(inputHbox, 0, wx.ALL)
 
         panel.SetSizer(vbox)
         self.Show()
@@ -63,7 +67,7 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
 
         self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
-        
+
         mainPanel = wx.Panel(self)
         hboxInputGraph = wx.BoxSizer(wx.HORIZONTAL)
         graphVbox = wx.BoxSizer(wx.VERTICAL)
@@ -79,8 +83,11 @@ class MainFrame(wx.Frame):
 
         deviationHbox.Add(deviationText, 0, wx.ALL)
         deviationHbox.Add(deviationSpinCtrl, 1, wx.EXPAND|wx.ALL)
-        
-        filterCheckBox = wx.CheckBox(mainPanel, label='Filter out first and last', style=wx.ALIGN_RIGHT)
+
+        filterCheckBox = wx.CheckBox(
+            mainPanel,
+            label='Filter out first and last',
+            style=wx.ALIGN_RIGHT)
 
         inputVbox.Add(dataBtn, 0, wx.EXPAND|wx.ALL, 5)
         inputVbox.Add(deviationHbox, 0, wx.EXPAND|wx.ALL, 6)
@@ -95,7 +102,7 @@ class MainFrame(wx.Frame):
         hboxInputGraph.Add(inputVbox, 3, wx.EXPAND|wx.ALL)
         hboxInputGraph.Add(graphVbox, 1, wx.EXPAND|wx.ALL)
         mainPanel.SetSizer(hboxInputGraph)
-        
+
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
         self.Show()
