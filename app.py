@@ -11,9 +11,37 @@ class GridFrame(wx.Frame):
         self.OnCreate()
 
     def OnCreate(self):
-        grid = wx.grid.Grid(self)
+        panel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        grid = wx.grid.Grid(panel)
         grid.CreateGrid(10, 2)
+        grid.SetColLabelValue(0, 'X')
+        grid.SetColLabelValue(1, 'Y')
 
+        inputHbox = wx.BoxSizer(wx.HORIZONTAL)
+        plusBtn = wx.Button(panel, label='+')
+        minusBtn = wx.Button(panel, label='-')
+        plus10Btn = wx.Button(panel, label='+10')
+        minus10Btn = wx.Button(panel, label='-10')
+        resetBtn = wx.Button(panel, label='Reset')
+
+        plusBtn.Bind(wx.EVT_BUTTON, lambda event: grid.InsertRows(numRows=1))
+        minusBtn.Bind(wx.EVT_BUTTON, lambda event: grid.DeleteRows(numRows=1) if grid.GetNumberRows() > 3 else False)
+        plus10Btn.Bind(wx.EVT_BUTTON, lambda event: grid.InsertRows(numRows=10))
+        minus10Btn.Bind(wx.EVT_BUTTON, lambda event: grid.DeleteRows(numRows=10) if grid.GetNumberRows() > 12 else False)
+
+        inputHbox.AddMany([
+            (plusBtn, 0, wx.ALL),
+            (minusBtn, 0, wx.ALL),
+            (plus10Btn, 0, wx.ALL),
+            (minus10Btn, 0, wx.ALL),
+            (resetBtn, 0, wx.ALL)
+        ])
+
+        vbox.Add(grid, 1, wx.EXPAND)
+        vbox.Add(inputHbox, 0, wx.ALL) 
+
+        panel.SetSizer(vbox)
         self.Show()
 class MainFrame(wx.Frame):
 
@@ -42,6 +70,8 @@ class MainFrame(wx.Frame):
         inputVbox = wx.BoxSizer(wx.VERTICAL)
 
         dataBtn = wx.Button(mainPanel, label='View Data')
+        dataBtn.Bind(wx.EVT_BUTTON, self.OnDataBtn)
+
         deviationHbox = wx.BoxSizer(wx.HORIZONTAL)
         deviationText = wx.StaticText(mainPanel, label='Maximum Deviation: ')
         deviationSpinCtrl = wx.SpinCtrl(mainPanel)
@@ -69,6 +99,9 @@ class MainFrame(wx.Frame):
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
         self.Show()
+
+    def OnDataBtn(self, event):
+        GridFrame(self)
 
     def OnExit(self, event):
         self.Close()
