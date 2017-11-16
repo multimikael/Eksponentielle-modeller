@@ -57,8 +57,10 @@ class MainFrame(wx.Frame):
         inputVbox.Add(filterCheckBox, 0, wx.ALL)
 
         graphsText = wx.StaticText(mainPanel, label='Graphs', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        graphScroll = wx.ScrolledWindow(mainPanel)
 
-        graphVbox.Add(graphsText, 0, wx.EXPAND)
+        graphVbox.Add(graphsText, 0, wx.EXPAND, 8)
+        graphVbox.Add(graphScroll, 1, wx.EXPAND, 8)
 
         hboxInputGraph.Add(inputVbox, 3, wx.EXPAND|wx.ALL)
         hboxInputGraph.Add(graphVbox, 1, wx.EXPAND|wx.ALL)
