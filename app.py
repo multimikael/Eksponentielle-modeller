@@ -49,9 +49,9 @@ class GridFrame(wx.Frame):
         self.Show()
 class MainFrame(wx.Frame):
 
-    def __init__(self, parent, _store, **kwargs):
+    def __init__(self, parent, store, **kwargs):
         super(MainFrame, self).__init__(parent, **kwargs)
-        self.store = _store
+        self.store = store
         self.OnCreate()
 
     def OnCreate(self):
@@ -113,8 +113,8 @@ class MainFrame(wx.Frame):
     def OnExit(self, event):
         self.Close()
 
-store = pydux.create_store(lambda state, action: True if state is None else not state)
-store.subscribe(lambda: print(store.get_state()))
+_store = pydux.create_store(lambda state, action: True if state is None else not state)
+_store.subscribe(lambda: print(_store.get_state()))
 app = wx.App()
-MainFrame(None, store)
+MainFrame(None, _store)
 app.MainLoop()
