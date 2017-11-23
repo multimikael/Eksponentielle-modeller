@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import reduce
 import wx
 import wx.grid
 import wxmplot
@@ -14,10 +15,73 @@ SET_DO_FILTER = 'SET_DO_FILTER'
 INITIALSTATE = {
     'data': [],
     'options': {
-        'deviation': 0,
+        'deviation': 0.0,
         'doFilter': False
+    },
+    'graphs': {
+        'manualGraph': {},
+        'manualStartingInZero': {},
+        'manualLog': {},
+        'autoGraph': {},
+        'autoStartingInZero': {},
+        'autoLog': {}
     }
 }
+
+#Side 286 Mat1
+def findA(x_1, y_1, x_2, y_2):
+    return (y_1/y_2)**(1/(x_1-x_2))
+
+def findB(a, x_1, y_1):
+    return y_1/(a**x_1)
+
+def averageA(data):
+    product = reduce(lambda x, y: x*y, data)
+    return product**(1/len(data))
+
+def average(data):
+    _sum = reduce(lambda x, y: x+y, data)
+    return _sum/len(data)
+
+def deviation(obs, tabel):
+    return (obs-tabel)/tabel
+
+def numeric(x):
+    return lambda: x if x >= 0 else x*-1
+
+"""Maybe makea function to interation of two value"""
+def findAcceptable(data, deviation):
+    results = []
+    tempResult = []
+    prevDs = ()
+    prevA = 0.0
+    for ds in data:
+        if prevDs != ():
+            a = findA(ds[0], ds[1], prevDs[0], prevDs[1])
+            if numeric(deviation(a, prevA)) <= deviation:
+                if not tempResult:
+                    tempResult.append(prevDs)
+                tempResult.append(ds)
+            elif tempResult:
+                results.append(tempResult)
+                tempResult = []
+        prevA = a
+        prevDs = ds
+    return results
+
+def findGraph(data):
+    """ returns {function, a, b}. function should be numpy"""
+    aData = []
+    for d in data:
+
+    a = averageA()
+    return {}
+
+def findManualGraph(data, deviation):
+    results = []
+    for dl in findAcceptable(data, deviation):
+        results.append(findGraph(dl))
+    return results
 
 def assignNewDict(before, newVals):
     after = deepcopy(before)
@@ -183,7 +247,7 @@ class MainFrame(wx.Frame):
             label='Filter out first and last',
             style=wx.ALIGN_RIGHT)
 
-        filterCheckBox.Bind(wx.EVT_CHECKBOX, 
+        filterCheckBox.Bind(wx.EVT_CHECKBOX,
             lambda event: self.store.dispatch(setDoFilter(event.IsChecked())))
 
         inputVbox.Add(dataBtn, 0, wx.EXPAND|wx.ALL, 5)
