@@ -22,7 +22,10 @@ INITIALSTATE = {
 def assignNewDict(before, newVals):
     after = deepcopy(before)
     for key in newVals:
-        after[key] = newVals[key]
+        if isinstance(newVals[key], dict):
+            after[key] = assignNewDict(after[key], newVals[key])
+        else:
+            after[key] = newVals[key]
     return after
 
 def replaceIndexValue(index, val1, val2):
@@ -59,9 +62,9 @@ def reducer(state, action):
             data.pop()
         return assignNewDict(state, {'data': data})
     elif action['type'] is SET_DEVIATION:
-        return assignNewDict(state, {'deviation': action['value']})
+        return assignNewDict(state, {'options': {'deviation': action['value']}})
     elif action['type'] is SET_DO_FILTER:
-        return assignNewDict(state, {'doFilter': action['boolean']})
+        return assignNewDict(state, {'options': {'doFilter': action['boolean']}})
     else:
         return state
 
