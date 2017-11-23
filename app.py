@@ -58,6 +58,10 @@ def reducer(state, action):
         for i in range(action['amount']):
             data.pop()
         return assignNewDict(state, {'data': data})
+    elif action['type'] is SET_DEVIATION:
+        return assignNewDict(state, {'deviation': action['value']})
+    elif action['type'] is SET_DO_FILTER:
+        return assignNewDict(state, {'doFilter': action['boolean']})
     else:
         return state
 
