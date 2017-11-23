@@ -1,9 +1,9 @@
+from copy import deepcopy
 import wx
 import wx.grid
 import wxmplot
 import numpy as np
 import pydux
-from copy import deepcopy
 
 REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
 ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
