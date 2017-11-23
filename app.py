@@ -118,7 +118,7 @@ class GridFrame(wx.Frame):
 
     def OnMinus10Btn(self, event):
         if self.grid.GetNumberRows() > 12:
-            self.grid.DeleteRows(pos=self.grid.GetNumberRows()-1, numRows=10)
+            self.grid.DeleteRows(pos=self.grid.GetNumberRows()-10, numRows=10)
             self.store.dispatch(popLastIndex(10))
 
 
