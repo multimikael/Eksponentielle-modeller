@@ -60,6 +60,7 @@ class GridFrame(wx.Frame):
         super(GridFrame, self).__init__(parent, **kwargs)
 
         self.store = store
+        self.store.dispatch(addEmptyIndex(self.ROWS))
         self.OnCreate()
 
     def OnCreate(self):
@@ -69,8 +70,6 @@ class GridFrame(wx.Frame):
         self.grid.CreateGrid(self.ROWS, 2)
         self.grid.SetColLabelValue(0, 'X')
         self.grid.SetColLabelValue(1, 'Y')
-
-        self.store.dispatch(addEmptyIndex(self.ROWS))
 
         self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED,
             lambda event: self.store.dispatch(replaceIndexValue(event.GetRow(),
@@ -105,21 +104,21 @@ class GridFrame(wx.Frame):
         self.Show()
 
     def OnPlusBtn(self, event):
-        self.grid.InsertRows(numRows=1)
+        self.grid.InsertRows(pos=self.grid.GetNumberRows(), numRows=1)
         self.store.dispatch(addEmptyIndex(1))
     
     def OnPlus10Btn(self, event):
-        self.grid.InsertRows(numRows=10)
+        self.grid.InsertRows(pos=self.grid.GetNumberRows(), numRows=10)
         self.store.dispatch(addEmptyIndex(10))
 
     def OnMinusBtn(self, event):
         if self.grid.GetNumberRows() > 3:
-            self.grid.DeleteRows(numRows=1)
+            self.grid.DeleteRows(pos=self.grid.GetNumberRows()-1, numRows=1)
             self.store.dispatch(popLastIndex(1))
 
     def OnMinus10Btn(self, event):
         if self.grid.GetNumberRows() > 12:
-            self.grid.DeleteRows(numRows=10)
+            self.grid.DeleteRows(pos=self.grid.GetNumberRows()-1, numRows=10)
             self.store.dispatch(popLastIndex(10))
 
 
