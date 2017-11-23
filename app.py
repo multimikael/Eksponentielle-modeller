@@ -9,12 +9,13 @@ REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
 ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
 POP_LAST_INDEX = 'POP_LAST_INDEX'
 SET_DEVIATION = 'SET_DEVIATION'
+SET_DO_FILTER = 'SET_DO_FILTER'
 
 INITIALSTATE = {
     'data': [],
     'options': {
         'deviation': 0,
-        'filter': False
+        'doFilter': False
     }
 }
 
@@ -35,6 +36,9 @@ def popLastIndex(amount):
 
 def setDeviation(value):
     return {'type': SET_DEVIATION, 'value': value}
+
+def setDoFilter(boolean):
+    return {'type': SET_DO_FILTER, 'boolean': boolean}
 
 def reducer(state, action):
     if state is None:
@@ -161,7 +165,7 @@ class MainFrame(wx.Frame):
         deviationSpinCtrl = wx.SpinCtrl(mainPanel)
         deviationSpinCtrl.SetRange(0, 100)
 
-        deviationSpinCtrl.Bind(wx.EVT_SPINCTRL, 
+        deviationSpinCtrl.Bind(wx.EVT_SPINCTRL,
             lambda event: self.store.dispatch(setDeviation(event.GetPosition())))
 
         deviationHbox.Add(deviationText, 0, wx.ALL)
@@ -171,6 +175,9 @@ class MainFrame(wx.Frame):
             mainPanel,
             label='Filter out first and last',
             style=wx.ALIGN_RIGHT)
+
+        filterCheckBox.Bind(wx.EVT_CHECKBOX, 
+            lambda event: self.store.dispatch(setDoFilter(event.IsChecked())))
 
         inputVbox.Add(dataBtn, 0, wx.EXPAND|wx.ALL, 5)
         inputVbox.Add(deviationHbox, 0, wx.EXPAND|wx.ALL, 6)
