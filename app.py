@@ -7,6 +7,7 @@ import pydux
 
 REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
 ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
+POP_LAST_INDEX = 'POP_LAST_INDEX'
 
 INITIALSTATE = {
     'data': [],
@@ -28,6 +29,9 @@ def replaceIndexValue(index, val1, val2):
 def addEmptyIndex(amount):
     return {'type': ADD_EMPTY_INDEX, 'amount': amount}
 
+def popLastIndex(amount):
+    return {'type': POP_LAST_INDEX, 'amount': amount}
+
 def reducer(state, action):
     if state is None:
         return INITIALSTATE
@@ -40,6 +44,11 @@ def reducer(state, action):
         data = state['data']
         for i in range(action['amount']):
             data.append(())
+        return assignNewDict(state, {'data': data})
+    elif action['type'] is POP_LAST_INDEX:
+        data = state['data']
+        for i in range(action['amount']):
+            data.pop()
         return assignNewDict(state, {'data': data})
     else:
         return state
@@ -76,14 +85,10 @@ class GridFrame(wx.Frame):
         minus10Btn = wx.Button(panel, label='-10')
         resetBtn = wx.Button(panel, label='Reset')
 
-        plusBtn.Bind(wx.EVT_BUTTON, lambda event: self.grid.InsertRows(numRows=1))
-        minusBtn.Bind(
-            wx.EVT_BUTTON,
-            lambda event: self.grid.DeleteRows(numRows=1) if self.grid.GetNumberRows() > 3 else False)
-        plus10Btn.Bind(wx.EVT_BUTTON, lambda event: self.grid.InsertRows(numRows=10))
-        minus10Btn.Bind(
-            wx.EVT_BUTTON,
-            lambda event: self.grid.DeleteRows(numRows=10) if self.grid.GetNumberRows() > 12 else False)
+        plusBtn.Bind(wx.EVT_BUTTON, self.OnPlusBtn)
+        minusBtn.Bind(wx.EVT_BUTTON, self.OnMinusBtn)
+        plus10Btn.Bind(wx.EVT_BUTTON, self.OnPlus10Btn)
+        minus10Btn.Bind(wx.EVT_BUTTON, self.OnMinus10Btn)
 
         inputHbox.AddMany([
             (plusBtn, 0, wx.ALL),
@@ -98,6 +103,26 @@ class GridFrame(wx.Frame):
 
         panel.SetSizer(vbox)
         self.Show()
+
+    def OnPlusBtn(self, event):
+        self.grid.InsertRows(numRows=1)
+        self.store.dispatch(addEmptyIndex(1))
+    
+    def OnPlus10Btn(self, event):
+        self.grid.InsertRows(numRows=10)
+        self.store.dispatch(addEmptyIndex(10))
+
+    def OnMinusBtn(self, event):
+        if self.grid.GetNumberRows() > 3:
+            self.grid.DeleteRows(numRows=1)
+            self.store.dispatch(popLastIndex(1))
+
+    def OnMinus10Btn(self, event):
+        if self.grid.GetNumberRows() > 12:
+            self.grid.DeleteRows(numRows=10)
+            self.store.dispatch(popLastIndex(10))
+
+
 
 class MainFrame(wx.Frame):
 
