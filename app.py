@@ -3,20 +3,72 @@ import wx.grid
 import wxmplot
 import numpy as np
 import pydux
+from copy import deepcopy
+
+REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
+ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
+
+INITIALSTATE = {
+    'data': [],
+    'options': {
+        'deviation': 0,
+        'filter': False
+    }
+}
+
+def assignNewDict(before, newVals):
+    after = deepcopy(before)
+    for key in newVals:
+        after[key] = newVals[key]
+    return after
+
+def replaceIndexValue(index, val1, val2):
+    return {'type': REPLACE_INDEX_VALUE, 'index': index, 'val1': val1, 'val2': val2}
+
+def addEmptyIndex(amount):
+    return {'type': ADD_EMPTY_INDEX, 'amount': amount}
+
+def reducer(state, action):
+    if state is None:
+        return INITIALSTATE
+    if action['type'] is REPLACE_INDEX_VALUE:
+        data = state['data']
+        data.pop(action['index'])
+        data.insert(action['index'], (action['val1'], action['val2']))
+        return assignNewDict(state, {'data': data})
+    elif action['type'] is ADD_EMPTY_INDEX:
+        data = state['data']
+        for i in range(action['amount']):
+            data.append(())
+        return assignNewDict(state, {'data': data})
+    else:
+        return state
 
 class GridFrame(wx.Frame):
-    def __init__(self, parent, **kwargs):
+    ROWS = 10
+    COL = 2
+
+    def __init__(self, parent, store, **kwargs):
         super(GridFrame, self).__init__(parent, **kwargs)
 
+        self.store = store
         self.OnCreate()
 
     def OnCreate(self):
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
-        grid = wx.grid.Grid(panel)
-        grid.CreateGrid(10, 2)
-        grid.SetColLabelValue(0, 'X')
-        grid.SetColLabelValue(1, 'Y')
+        self.grid = wx.grid.Grid(panel)
+        self.grid.CreateGrid(self.ROWS, self.COL)
+        self.grid.SetColLabelValue(0, 'X')
+        self.grid.SetColLabelValue(1, 'Y')
+
+        self.store.dispatch(addEmptyIndex(self.ROWS))
+
+        self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED,
+            lambda event: self.store.dispatch(replaceIndexValue(event.GetRow(),
+                self.grid.GetCellValue(event.GetRow(), 0),
+                self.grid.GetCellValue(event.GetRow(), 1)
+        )))
 
         inputHbox = wx.BoxSizer(wx.HORIZONTAL)
         plusBtn = wx.Button(panel, label='+')
@@ -25,14 +77,14 @@ class GridFrame(wx.Frame):
         minus10Btn = wx.Button(panel, label='-10')
         resetBtn = wx.Button(panel, label='Reset')
 
-        plusBtn.Bind(wx.EVT_BUTTON, lambda event: grid.InsertRows(numRows=1))
+        plusBtn.Bind(wx.EVT_BUTTON, lambda event: self.grid.InsertRows(numRows=1))
         minusBtn.Bind(
             wx.EVT_BUTTON,
-            lambda event: grid.DeleteRows(numRows=1) if grid.GetNumberRows() > 3 else False)
-        plus10Btn.Bind(wx.EVT_BUTTON, lambda event: grid.InsertRows(numRows=10))
+            lambda event: self.grid.DeleteRows(numRows=1) if self.grid.GetNumberRows() > 3 else False)
+        plus10Btn.Bind(wx.EVT_BUTTON, lambda event: self.grid.InsertRows(numRows=10))
         minus10Btn.Bind(
             wx.EVT_BUTTON,
-            lambda event: grid.DeleteRows(numRows=10) if grid.GetNumberRows() > 12 else False)
+            lambda event: self.grid.DeleteRows(numRows=10) if self.grid.GetNumberRows() > 12 else False)
 
         inputHbox.AddMany([
             (plusBtn, 0, wx.ALL),
@@ -42,11 +94,12 @@ class GridFrame(wx.Frame):
             (resetBtn, 0, wx.ALL)
         ])
 
-        vbox.Add(grid, 1, wx.EXPAND)
+        vbox.Add(self.grid, 1, wx.EXPAND)
         vbox.Add(inputHbox, 0, wx.ALL)
 
         panel.SetSizer(vbox)
         self.Show()
+
 class MainFrame(wx.Frame):
 
     def __init__(self, parent, store, **kwargs):
@@ -108,12 +161,12 @@ class MainFrame(wx.Frame):
         self.Show()
 
     def OnDataBtn(self, event):
-        GridFrame(self)
+        GridFrame(self, self.store)
 
     def OnExit(self, event):
         self.Close()
 
-_store = pydux.create_store(lambda state, action: True if state is None else not state)
+_store = pydux.create_store(reducer)
 _store.subscribe(lambda: print(_store.get_state()))
 app = wx.App()
 MainFrame(None, _store)
