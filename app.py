@@ -8,6 +8,7 @@ import pydux
 REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
 ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
 POP_LAST_INDEX = 'POP_LAST_INDEX'
+SET_DEVIATION = 'SET_DEVIATION'
 
 INITIALSTATE = {
     'data': [],
@@ -31,6 +32,9 @@ def addEmptyIndex(amount):
 
 def popLastIndex(amount):
     return {'type': POP_LAST_INDEX, 'amount': amount}
+
+def setDeviation(value):
+    return {'type': SET_DEVIATION, 'value': value}
 
 def reducer(state, action):
     if state is None:
@@ -106,7 +110,7 @@ class GridFrame(wx.Frame):
     def OnPlusBtn(self, event):
         self.grid.InsertRows(pos=self.grid.GetNumberRows(), numRows=1)
         self.store.dispatch(addEmptyIndex(1))
-    
+
     def OnPlus10Btn(self, event):
         self.grid.InsertRows(pos=self.grid.GetNumberRows(), numRows=10)
         self.store.dispatch(addEmptyIndex(10))
@@ -156,6 +160,9 @@ class MainFrame(wx.Frame):
         deviationText = wx.StaticText(mainPanel, label='Maximum Deviation: ')
         deviationSpinCtrl = wx.SpinCtrl(mainPanel)
         deviationSpinCtrl.SetRange(0, 100)
+
+        deviationSpinCtrl.Bind(wx.EVT_SPINCTRL, 
+            lambda event: self.store.dispatch(setDeviation(event.GetPosition())))
 
         deviationHbox.Add(deviationText, 0, wx.ALL)
         deviationHbox.Add(deviationSpinCtrl, 1, wx.EXPAND|wx.ALL)
