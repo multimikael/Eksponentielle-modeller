@@ -46,7 +46,6 @@ def reducer(state, action):
 
 class GridFrame(wx.Frame):
     ROWS = 10
-    COL = 2
 
     def __init__(self, parent, store, **kwargs):
         super(GridFrame, self).__init__(parent, **kwargs)
@@ -58,7 +57,7 @@ class GridFrame(wx.Frame):
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
         self.grid = wx.grid.Grid(panel)
-        self.grid.CreateGrid(self.ROWS, self.COL)
+        self.grid.CreateGrid(self.ROWS, 2)
         self.grid.SetColLabelValue(0, 'X')
         self.grid.SetColLabelValue(1, 'Y')
 
