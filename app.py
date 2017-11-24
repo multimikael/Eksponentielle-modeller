@@ -49,7 +49,6 @@ def deviation(obs, tabel):
 def numeric(x):
     return lambda: x if x >= 0 else x*-1
 
-"""Maybe makea function to interation of two value"""
 def findAcceptable(data, deviation):
     results = []
     tempResult = []
@@ -72,7 +71,10 @@ def findAcceptable(data, deviation):
 def findGraph(data):
     """ returns {function, a, b}. function should be numpy"""
     aData = []
-    for d in data:
+    prevDs = ()
+    for ds in data:
+        if prevDs != ():
+            aDatafindA(ds[0], ds[1], prevDs[0], prevDs[1])
 
     a = averageA()
     return {}
@@ -149,6 +151,8 @@ class GridFrame(wx.Frame):
         self.grid.CreateGrid(self.ROWS, 2)
         self.grid.SetColLabelValue(0, 'X')
         self.grid.SetColLabelValue(1, 'Y')
+        self.grid.SetColFormatFloat(0)
+        self.grid.SetColFormatFloat(1)
 
         self.grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED,
             lambda event: self.store.dispatch(replaceIndexValue(event.GetRow(),
