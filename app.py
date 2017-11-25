@@ -43,11 +43,14 @@ def average(data):
     _sum = reduce(lambda x, y: x+y, data)
     return _sum/len(data)
 
-def deviation(obs, tabel):
+def findDeviation(obs, tabel):
     return (obs-tabel)/tabel
 
 def numeric(x):
     return lambda: x if x >= 0 else x*-1
+
+def makeFunction(x, a, b):
+    return {'f': b*a**x, 'a': a, 'b': b}
 
 def findAcceptable(data, deviation):
     results = []
@@ -57,7 +60,7 @@ def findAcceptable(data, deviation):
     for ds in data:
         if prevDs != ():
             a = findA(ds[0], ds[1], prevDs[0], prevDs[1])
-            if numeric(deviation(a, prevA)) <= deviation:
+            if numeric(findDeviation(a, prevA)) <= deviation:
                 if not tempResult:
                     tempResult.append(prevDs)
                 tempResult.append(ds)
@@ -68,21 +71,35 @@ def findAcceptable(data, deviation):
         prevDs = ds
     return results
 
-def findGraph(data):
+def findFunction(data, x):
     """ returns {function, a, b}. function should be numpy"""
     aData = []
+    bData = []
     prevDs = ()
     for ds in data:
         if prevDs != ():
-            aDatafindA(ds[0], ds[1], prevDs[0], prevDs[1])
+            aData.append(findA(ds[0], ds[1], prevDs[0], prevDs[1]))
+    a = averageA(aData)
+    for ds in data:
+        bData.append(findB(a, ds[0], ds[1]))
+    b = average(bData)
+    return makeFunction(x, a, b)
 
-    a = averageA()
-    return {}
-
-def findManualGraph(data, deviation):
+def findManualGraph(data, x, deviation):
+    """ returns a list with {points, function}"""
     results = []
     for dl in findAcceptable(data, deviation):
-        results.append(findGraph(dl))
+        results.append({'f': findFunction(dl, x), 'points': dl})
+    return results
+
+def findStaringInZero(graphs, x):
+    """ takes a list of graphs """
+    results = []
+    for graph in graphs:
+        bData = []
+        for point in graph['points']:
+            bData.append(findB(graph['f']['a'], point[0], point[1]))
+        results.append(makeFunction(x, graph['f']['a'], average(bData)))
     return results
 
 def assignNewDict(before, newVals):
