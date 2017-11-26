@@ -1,13 +1,13 @@
 from copy import deepcopy
 from functools import reduce
 import threading
+import math
 import wx
 import wx.grid
 import wx.lib.scrolledpanel as scrolled
 import wxmplot
 import numpy as np
 import pydux
-import math
 
 REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
 ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
