@@ -1,7 +1,9 @@
 from copy import deepcopy
 from functools import reduce
+import threading
 import wx
 import wx.grid
+import wx.lib.scrolledpanel as scrolled
 import wxmplot
 import numpy as np
 import pydux
@@ -16,9 +18,10 @@ NEW_MANUAL_GRAPH = 'NEW_MANUAL_GRAPH'
 INITIALSTATE = {
     'data': [(0, 15), (20, 16), (40, 18), (60, 19),
              (80, 22), (100, 24), (140, 31), (160, 42),
-             (180, 49), (200, 67)],
+             (180, 49), (200, 67), (220, 78), (240, 90),
+             (260, 105), (280, 109), (300, 122), (320, 125)],
     'options': {
-        'deviation': 0.0,
+        'deviation': 0,
         'doFilter': False
     },
     'graphs': {
@@ -68,26 +71,28 @@ def makeFunction(x, a, b):
     return {'f': b*a**x, 'a': a, 'b': b}
 
 def findAcceptable(data, deviation):
+    print(data)
     results = []
     tempResult = []
-    prevDs = ()
     prevA = 0.0
-    for ds in data:
-        if ds != ():
-            if prevDs != ():
-                print('ds', ds)
-                print('prev', prevDs)
-                a = findA(ds[0], ds[1], prevDs[0], prevDs[1])
-                if prevA is 0.0:
-                    tempResult.append(ds)
-                elif (numeric(findDeviation(a, prevA)) <= deviation) and (not tempResult):
-                    tempResult.append(prevDs)
-                    tempResult.append(ds)
-                elif tempResult:
-                    results.append(tempResult)
-                    tempResult = []
-                prevA = a
-            prevDs = ds
+    for i in range(len(data)-1):
+        ds1 = data[i]
+        ds2 = data[i+1]
+        a = findA(ds2[0], ds2[1], ds1[0], ds1[1])
+        if i is len(data)-2:
+            results.append(tempResult)
+        elif prevA != 0.0:
+            print(numeric(findDeviation(a, prevA)))
+            if numeric(findDeviation(a, prevA)) <= deviation/100:
+                print(True)
+                if tempResult is []:
+                    tempResult.append(ds1)
+                tempResult.append(ds2)
+            else:
+                results.append(tempResult)
+        else:
+            prevA = a
+    print(results)
     return results
 
 def findFunction(data, x):
@@ -129,11 +134,13 @@ def findStaringInZero(graphs, x):
 def findLinspace(points):
     xMin = points[len(points)-1][0]
     xMax = points[0][0]
+    print("xMin: ", xMin)
+    print('xMax: ', xMax)
     return np.linspace(xMin, xMax)
 
 def manualGraphPanel(parent, manualGraphs):
     print('manualGraphs: ', manualGraphs)
-    panel = wxmplot.PlotPanel(parent)
+    panel = wxmplot.PlotPanel(parent, size=(450, 450))
     if manualGraphs != {}:
         for graph in manualGraphs:
             print('graph: ', graph)
@@ -143,15 +150,14 @@ def manualGraphPanel(parent, manualGraphs):
             for point in graph['points']:
                 print('point: ', point)
                 panel.scatterplot(np.array([point[0]]), np.array([point[1]]))
-            
     return panel
 
 
 
 # ACTION CREATORS
 
-def newManualGraph():
-    return {'type': NEW_MANUAL_GRAPH}
+def newManualGraph(manualGraph):
+    return {'type': NEW_MANUAL_GRAPH, 'manualGraph': manualGraph}
 
 def assignNewDict(before, newVals):
     after = deepcopy(before)
@@ -204,16 +210,36 @@ def reducer(state, action):
     elif action['type'] is SET_DO_FILTER:
         return assignNewDict(state, {'options': {'doFilter': action['boolean']}})
     elif action['type'] is NEW_MANUAL_GRAPH:
-        print(state['options']['deviation'])
         return assignNewDict(state, {
             'graphs': {
-                'manualGraph': findManualGraph(state['data'], state['options']['deviation'])
+                'manualGraph': action['manualGraph']
             }
         })
     else:
         return state
 
-class GraphsPanel(wx.Panel):
+class ThreadWithCallback(threading.Thread):
+    def __init__(self, callback=None, targetArgs=None, *args, **kwargs):
+        super().__init__(target=self.targetAndCallback, *args, **kwargs)
+        self.callback = callback
+        self.targetArgs = targetArgs
+
+    def setCallback(self, callback):
+        self.callback = callback
+
+    def setTarget(self, target):
+        self.method = target
+
+    def setTargetArgs(self, args):
+        self.targetArgs = args
+
+    def targetAndCallback(self):
+        print('lol')
+        result = self.method(*self.targetArgs)
+        if self.callback != None:
+            self.callback(result)
+
+class GraphsPanel(scrolled.ScrolledPanel):
     def __init__(self, parent, graphs):
         super().__init__(parent)
         self.graphs = graphs
@@ -223,15 +249,15 @@ class GraphsPanel(wx.Panel):
     def OnCreate(self):
         self.vBox = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.vBox)
+        self.SetupScrolling(scroll_x=False)
 
     def removeVBoxChildren(self):
-        for panel in self.graphPanels:
-            panel.Hide()
+        self.vBox.Clear()
         self.Layout()
         self.graphPanels = []
 
     def AddGraphsToVBox(self, graphs):
-        self.vBox.Add(manualGraphPanel(self, graphs), 0, wx.ALL|wx.EXPAND)
+        self.vBox.Add(manualGraphPanel(self, graphs), 0, wx.EXPAND)
         self.Layout()
         self.graphPanels.append(manualGraphPanel(self, graphs))
 
@@ -239,7 +265,6 @@ class GraphsPanel(wx.Panel):
         super().Update()
         self.removeVBoxChildren()
         self.AddGraphsToVBox(graphs)
-
 
 
 class GridFrame(wx.Frame):
@@ -318,8 +343,13 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, store, **kwargs):
         super(MainFrame, self).__init__(parent, **kwargs)
+        self.SetMinSize(wx.Size(1280, 720))
         self.store = store
         self.OnCreate()
+        self.Layout()
+        self.Fit()
+        self.Centre()
+        self.workThread = ThreadWithCallback()
 
     def OnCreate(self):
         menubar = wx.MenuBar()
@@ -379,12 +409,15 @@ class MainFrame(wx.Frame):
         mainPanel.SetSizer(hboxInputGraph)
 
         self.SetTitle('Eksponentielle Modeller')
-        self.Centre()
         self.Show()
 
     def OnDeviationBtn(self, event):
         self.store.dispatch(setDeviation(event.GetPosition()))
-        self.store.dispatch(newManualGraph())
+        self.workThread.setTarget(findManualGraph)
+        self.workThread.setTargetArgs((self.store.get_state()['data'],
+            self.store.get_state()['options']['deviation']))
+        self.workThread.setCallback(lambda results: self.store.dispatch(newManualGraph(results)))
+        self.workThread.start()
 
     def OnDataBtn(self, event):
         GridFrame(self, self.store)
