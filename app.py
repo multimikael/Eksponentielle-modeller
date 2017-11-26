@@ -339,7 +339,7 @@ class GraphFrame(wx.Frame):
         super().__init__(parent, **kwargs)
 
         self.graph = graph
-        self.SetMinSize(wx.Size(1280, 720))
+        self.SetMinSize(wx.Size(852, 480))
         self.OnCreate()
         self.Fit()
         self.Centre()
@@ -458,7 +458,7 @@ class MainFrame(wx.Frame):
     def __init__(self, parent, store, **kwargs):
         super(MainFrame, self).__init__(parent, **kwargs)
         self.store = store
-        self.SetMinSize(wx.Size(1280, 720))
+        self.SetMinSize(wx.Size(852, 480))
         self.OnCreate()
         self.Layout()
         self.Fit()
