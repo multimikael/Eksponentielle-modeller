@@ -7,6 +7,7 @@ import wx.lib.scrolledpanel as scrolled
 import wxmplot
 import numpy as np
 import pydux
+import math
 
 REPLACE_INDEX_VALUE = 'REPLACE_INDEX_VALUE'
 ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
@@ -15,6 +16,7 @@ SET_DEVIATION = 'SET_DEVIATION'
 SET_DO_FILTER = 'SET_DO_FILTER'
 NEW_MANUAL_GRAPH = 'NEW_MANUAL_GRAPH'
 NEW_ZERO_GRAPH = 'NEW_ZERO_GRAPH'
+NEW_LOG_GRAPH = 'NEW_LOG_GRAPH'
 
 INITIALSTATE = {
     'data': [(0, 15), (20, 16), (40, 18), (60, 19),
@@ -28,15 +30,22 @@ INITIALSTATE = {
     'graphs': {
         'manualGraph': {},
         'zeroGraph': {},
-        'manualLog': {}
+        'logGraph': {}
     }
 }
 
 #Side 286 Mat1
-def findA(x_1, y_1, x_2, y_2):
+
+def findLinearA(x_1, y_1, x_2, y_2):
+    return (y_2-y_1)/(x_2-x_1)
+
+def findLinearB(a, x_1, y_1):
+    return y_1-a*x_1
+
+def findPowerA(x_1, y_1, x_2, y_2):
     return (y_1/y_2)**(1/(x_1-x_2))
 
-def findB(a, x_1, y_1):
+def findPowerB(a, x_1, y_1):
     return y_1/(a**x_1)
 
 def averageA(data):
@@ -63,12 +72,15 @@ def numeric(x):
     else:
         return x*-1.0
 
-def makeFunction(x, a, b):
+def makePowerFunction(x, a, b):
     print('function a', a)
     print('function b', b)
     return {'f': b*a**x, 'a': a, 'b': b}
 
-def findAcceptable(data, deviation):
+def makeLinearFunction(x, a, b):
+    return {'f': a*x+b, 'a': a, 'b': b}
+
+def findPowerAcceptable(data, deviation):
     print(data)
     results = []
     tempResult = []
@@ -76,7 +88,7 @@ def findAcceptable(data, deviation):
     for i in range(len(data)-1):
         ds1 = data[i]
         ds2 = data[i+1]
-        a = findA(ds2[0], ds2[1], ds1[0], ds1[1])
+        a = findPowerA(ds2[0], ds2[1], ds1[0], ds1[1])
         if i is len(data)-2:
             results.append(tempResult)
         elif prevA != 0.0:
@@ -92,33 +104,50 @@ def findAcceptable(data, deviation):
     print(results)
     return results
 
-def findFunction(data, x):
+def findPowerFunction(data, x):
     """ returns {function, a, b}. function should be numpy"""
     aData = []
     bData = []
     prevDs = ()
     for ds in data:
         if prevDs:
-            aData.append(findA(ds[0], ds[1], prevDs[0], prevDs[1]))
+            aData.append(findPowerA(ds[0], ds[1], prevDs[0], prevDs[1]))
         prevDs = ds
     if len(aData) > 1:
         a = averageA(aData)
     else:
         return None
     for ds in data:
-        bData.append(findB(a, ds[0], ds[1]))
+        bData.append(findPowerB(a, ds[0], ds[1]))
     b = average(bData)
-    return makeFunction(x, a, b)
+    return makePowerFunction(x, a, b)
+
+def findLinearFunction(data, x):
+    """ returns {function, a, b}. function should be numpy"""
+    aData = []
+    bData = []
+    prevDs = ()
+    for ds in data:
+        if prevDs:
+            aData.append(findLinearA(prevDs[0], prevDs[1], ds[0], ds[1]))
+        prevDs = ds
+    if len(aData) > 1:
+        a = average(aData)
+    else:
+        return None
+    for ds in data:
+        bData.append(findLinearB(a, ds[0], ds[1]))
+    b = average(bData)
+    return makeLinearFunction(x, a, b)
 
 def findManualGraph(data, deviation, doFilter):
     """ returns a list with {points, function}"""
     if doFilter:
-        print(data)
         data.pop(0)
         data.pop()
     results = []
-    for dl in findAcceptable(data, deviation):
-        results.append({'f': findFunction(dl, findLinspace(dl)), 'points': dl})
+    for dl in findPowerAcceptable(data, deviation):
+        results.append({'f': findPowerFunction(dl, findLinspace(dl)), 'points': dl})
     return results
 
 def findZeroGraph(data, deviation, doFilter):
@@ -129,7 +158,18 @@ def findZeroGraph(data, deviation, doFilter):
     return findManualGraph(data, deviation, doFilter)
 
 def findLogGraph(data, deviation, doFilter):
-    
+    if doFilter:
+        data.pop(0)
+        data.pop()
+    results = []
+    for dl in findPowerAcceptable(data, deviation):
+        logList = list(map(
+            lambda x: (math.log10(x[0]), math.log10(x[1])), dl))
+        results.append({
+            'f': findLinearFunction(logList, findLinspace(logList)),
+            'points': logList
+        })
+    return results
 
 def findLinspace(points):
     xMin = points[len(points)-1][0]
@@ -151,6 +191,9 @@ def graphPanel(parent, graphs):
 
 
 # ACTION CREATORS
+
+def newLogGraph(logGraph):
+    return {'type': NEW_LOG_GRAPH, 'logGraph': logGraph}
 
 def newZeroGraph(zeroGraph):
     return {'type': NEW_ZERO_GRAPH, 'zeroGraph': zeroGraph}
@@ -215,6 +258,12 @@ def reducer(state, action):
         return assignNewDict(state, {
             'graphs': {
                 'zeroGraph': action['zeroGraph']
+            }
+        })
+    elif action['type'] is NEW_LOG_GRAPH:
+        return assignNewDict(state, {
+            'graphs': {
+                'logGraph': action['logGraph']
             }
         })
     else:
@@ -423,6 +472,10 @@ class MainFrame(wx.Frame):
                 self.store.get_state()['options']['doFilter'])))
         self.store.dispatch(newZeroGraph(
             findZeroGraph(self.store.get_state()['data'],
+                self.store.get_state()['options']['deviation'], 
+                self.store.get_state()['options']['doFilter'])))
+        self.store.dispatch(newLogGraph(
+            findLogGraph(self.store.get_state()['data'],
                 self.store.get_state()['options']['deviation'], 
                 self.store.get_state()['options']['doFilter'])))
         self.graphsPanel.Update(self.store.get_state()['graphs'])
