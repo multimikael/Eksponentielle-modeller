@@ -14,6 +14,7 @@ POP_LAST_INDEX = 'POP_LAST_INDEX'
 SET_DEVIATION = 'SET_DEVIATION'
 SET_DO_FILTER = 'SET_DO_FILTER'
 NEW_MANUAL_GRAPH = 'NEW_MANUAL_GRAPH'
+NEW_ZERO_GRAPH = 'NEW_ZERO_GRAPH'
 
 INITIALSTATE = {
     'data': [(0, 15), (20, 16), (40, 18), (60, 19),
@@ -26,11 +27,8 @@ INITIALSTATE = {
     },
     'graphs': {
         'manualGraph': {},
-        'manualStartingInZero': {},
-        'manualLog': {},
-        'autoGraph': {},
-        'autoStartingInZero': {},
-        'autoLog': {}
+        'zeroGraph': {},
+        'manualLog': {}
     }
 }
 
@@ -118,41 +116,44 @@ def findManualGraph(data, deviation, doFilter):
         print(data)
         data.pop(0)
         data.pop()
-        print(data)
     results = []
     for dl in findAcceptable(data, deviation):
         results.append({'f': findFunction(dl, findLinspace(dl)), 'points': dl})
     return results
 
-def findStaringInZero(graphs, x):
+def findZeroGraph(data, deviation, doFilter):
     """ takes a list of graphs """
-    results = []
-    for graph in graphs:
-        bData = []
-        for point in graph['points']:
-            bData.append(findB(graph['f']['a'], point[0], point[1]))
-        results.append(makeFunction(x, graph['f']['a'], average(bData)))
-    return results
+    first = data[0]
+    print('frist', first)
+    data = list(map(lambda x: (x[0]-first[0], x[1]), data))
+    return findManualGraph(data, deviation, doFilter)
+
+def findLogGraph(data, deviation, doFilter):
+    
 
 def findLinspace(points):
     xMin = points[len(points)-1][0]
     xMax = points[0][0]
     return np.linspace(xMin, xMax)
 
-def manualGraphPanel(parent, manualGraphs):
+def graphPanel(parent, graphs):
     panel = wxmplot.PlotPanel(parent, size=(450, 450))
-    if manualGraphs != {}:
-        for graph in manualGraphs:
-            if graph['f'] != None:
-                xdata = findLinspace(graph['points'])
-                panel.plot(xdata, graph['f']['f'])
-            for point in graph['points']:
-                panel.scatterplot(np.array([point[0]]), np.array([point[1]]))
+    print('graphs: ', graphs)
+    for graph in graphs:
+        print('graph: ', graph)
+        if graph['f'] != None:
+            xdata = findLinspace(graph['points'])
+            panel.plot(xdata, graph['f']['f'])
+        for point in graph['points']:
+            panel.scatterplot(np.array([point[0]]), np.array([point[1]]))
     return panel
 
 
 
 # ACTION CREATORS
+
+def newZeroGraph(zeroGraph):
+    return {'type': NEW_ZERO_GRAPH, 'zeroGraph': zeroGraph}
 
 def newManualGraph(manualGraph):
     return {'type': NEW_MANUAL_GRAPH, 'manualGraph': manualGraph}
@@ -210,6 +211,12 @@ def reducer(state, action):
                 'manualGraph': action['manualGraph']
             }
         })
+    elif action['type'] is NEW_ZERO_GRAPH:
+        return assignNewDict(state, {
+            'graphs': {
+                'zeroGraph': action['zeroGraph']
+            }
+        })
     else:
         return state
 
@@ -237,7 +244,6 @@ class GraphsPanel(scrolled.ScrolledPanel):
     def __init__(self, parent, graphs):
         super().__init__(parent)
         self.graphs = graphs
-        self.graphPanels = []
         self.OnCreate()
 
     def OnCreate(self):
@@ -247,18 +253,17 @@ class GraphsPanel(scrolled.ScrolledPanel):
 
     def removeVBoxChildren(self):
         self.vBox.Clear()
-        self.Layout()
-        self.graphPanels = []
 
     def AddGraphsToVBox(self, graphs):
-        self.vBox.Add(manualGraphPanel(self, graphs), 0, wx.EXPAND)
-        self.Layout()
-        self.graphPanels.append(manualGraphPanel(self, graphs))
+        for graph in graphs:
+            if graphs[graph] != {}:
+                self.vBox.Add(graphPanel(self, graphs[graph]), 0, wx.EXPAND)
 
     def Update(self, graphs):
         super().Update()
         self.removeVBoxChildren()
         self.AddGraphsToVBox(graphs)
+        self.Layout()
 
 
 class GridFrame(wx.Frame):
@@ -268,7 +273,6 @@ class GridFrame(wx.Frame):
         super().__init__(parent, **kwargs)
 
         self.store = store
-        #self.store.dispatch(addEmptyIndex(self.ROWS))
         self.OnCreate()
 
     def OnCreate(self):
@@ -381,8 +385,7 @@ class MainFrame(wx.Frame):
             label='Filter out first and last',
             style=wx.ALIGN_RIGHT)
 
-        filterCheckBox.Bind(wx.EVT_CHECKBOX,
-            lambda event: self.store.dispatch(setDoFilter(event.IsChecked())))
+        filterCheckBox.Bind(wx.EVT_CHECKBOX, self.OnFilterCB)
 
         inputVbox.Add(dataBtn, 0, wx.EXPAND|wx.ALL, 5)
         inputVbox.Add(deviationHbox, 0, wx.EXPAND|wx.ALL, 6)
@@ -390,12 +393,10 @@ class MainFrame(wx.Frame):
 
         #Graphs
         graphsText = wx.StaticText(mainPanel, label='Graphs', style=wx.ALIGN_CENTRE_HORIZONTAL)
-        graphsPanel = GraphsPanel(mainPanel, self.store.get_state()['graphs']['manualGraph'])
-
-        self.store.subscribe(lambda: graphsPanel.Update(self.store.get_state()['graphs']['manualGraph']))
+        self.graphsPanel = GraphsPanel(mainPanel, self.store.get_state()['graphs']['manualGraph'])
 
         self.graphVbox.Add(graphsText, 0, wx.EXPAND, 8)
-        self.graphVbox.Add(graphsPanel, 1, wx.EXPAND, 8)
+        self.graphVbox.Add(self.graphsPanel, 1, wx.EXPAND, 8)
 
         hboxInputGraph.Add(inputVbox, 3, wx.EXPAND|wx.ALL)
         hboxInputGraph.Add(self.graphVbox, 1, wx.EXPAND|wx.ALL)
@@ -404,15 +405,27 @@ class MainFrame(wx.Frame):
         self.SetTitle('Eksponentielle Modeller')
         self.Show()
 
+    def OnFilterCB(self, event):
+        self.store.dispatch(setDoFilter(event.IsChecked()))
+        self.NewGraph()
+
     def OnDeviationBtn(self, event):
         self.store.dispatch(setDeviation(event.GetPosition()))
+        self.NewGraph()
+
+    def OnDataBtn(self, event):
+        GridFrame(self, self.store)
+
+    def NewGraph(self):
         self.store.dispatch(newManualGraph(
             findManualGraph(self.store.get_state()['data'],
                 self.store.get_state()['options']['deviation'], 
                 self.store.get_state()['options']['doFilter'])))
-
-    def OnDataBtn(self, event):
-        GridFrame(self, self.store)
+        self.store.dispatch(newZeroGraph(
+            findZeroGraph(self.store.get_state()['data'],
+                self.store.get_state()['options']['deviation'], 
+                self.store.get_state()['options']['doFilter'])))
+        self.graphsPanel.Update(self.store.get_state()['graphs'])
 
     def OnExit(self, event):
         self.Close()
