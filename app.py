@@ -306,7 +306,7 @@ class GraphsPanel(scrolled.ScrolledPanel):
     def AddGraphsToVBox(self, graphs):
         for graph in graphs:
             if graphs[graph] != {}:
-                self.vBox.Add(graphPanel(self, graphs[graph]), 0, wx.EXPAND)
+                self.vBox.Add(GPanelWithButton(self, graphs[graph]), 0, wx.EXPAND)
 
     def Update(self, graphs):
         super().Update()
@@ -314,6 +314,73 @@ class GraphsPanel(scrolled.ScrolledPanel):
         self.AddGraphsToVBox(graphs)
         self.Layout()
 
+class GPanelWithButton(wx.Panel):
+    def __init__(self, parent, graph, **kwargs):
+        super().__init__(parent, **kwargs)
+
+        self.graph = graph
+        self.OnCreate()
+    
+    def OnCreate(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        g = graphPanel(self, self.graph)
+        btn = wx.Button(self, label='Expand')
+        btn.Bind(wx.EVT_BUTTON, lambda event: GraphFrame(self, self.graph))
+
+        vbox.Add(g, 0, wx.EXPAND)
+        vbox.Add(btn, 0, wx.EXPAND)
+        
+        self.SetSizer(vbox)
+
+class GraphFrame(wx.Frame):
+
+    def __init__(self, parent, graph, **kwargs):
+        super().__init__(parent, **kwargs)
+
+        self.graph = graph
+        self.SetMinSize(wx.Size(1280, 720))
+        self.OnCreate()
+        self.Fit()
+        self.Centre()
+
+    def OnCreate(self):
+        panel = wx.Panel(self)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        gPanel = graphPanel(panel, self.graph)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        statisticsLabel = wx.StaticText(panel, label='Statistics', style=wx.ALIGN_CENTRE_HORIZONTAL)
+
+        vbox.Add(statisticsLabel, 0, wx.EXPAND)
+
+        for g in self.graph:
+            gridSizer = wx.FlexGridSizer(3, 2, 8, 8)
+            if g['f'] != None:
+                aLabel = wx.StaticText(panel, label='a: ')
+                aVal = wx.StaticText(panel, label=str(g['f']['a']), style=wx.ALIGN_RIGHT)
+                bLabel = wx.StaticText(panel, label='b: ')
+                bVal = wx.StaticText(panel, label=str(g['f']['b']), style=wx.ALIGN_RIGHT)
+            pointsLabel = wx.StaticText(panel, label='points: ')
+            pointsString = ""
+            for point in g['points']:
+                pointsString = pointsString + "(%f, %f) \n" % (point[0], point[1])
+            pointsVal = wx.StaticText(panel, label=pointsString, style=wx.ALIGN_RIGHT)
+            gridSizer.AddMany([
+                (aLabel, 1, wx.EXPAND), (aVal, 0, wx.ALL), 
+                (bLabel, 1, wx.EXPAND), (bVal, 0, wx.ALL),
+                (pointsLabel, 1, wx.EXPAND), (pointsVal, 0, wx.ALL)
+            ])
+            vbox.Add(gridSizer, 0, wx.EXPAND)
+
+        hbox.Add(gPanel, 3, wx.EXPAND)
+        hbox.Add(vbox, 1, wx.ALL)
+
+        panel.SetSizer(hbox)
+
+        self.Show()
+        
 
 class GridFrame(wx.Frame):
     ROWS = 10
@@ -390,8 +457,8 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, store, **kwargs):
         super(MainFrame, self).__init__(parent, **kwargs)
-        self.SetMinSize(wx.Size(1280, 720))
         self.store = store
+        self.SetMinSize(wx.Size(1280, 720))
         self.OnCreate()
         self.Layout()
         self.Fit()
