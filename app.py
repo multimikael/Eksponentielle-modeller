@@ -11,9 +11,12 @@ ADD_EMPTY_INDEX = 'ADD_EMPTY_INDEX'
 POP_LAST_INDEX = 'POP_LAST_INDEX'
 SET_DEVIATION = 'SET_DEVIATION'
 SET_DO_FILTER = 'SET_DO_FILTER'
+NEW_MANUAL_GRAPH = 'NEW_MANUAL_GRAPH'
 
 INITIALSTATE = {
-    'data': [],
+    'data': [(0, 15), (20, 16), (40, 18), (60, 19),
+             (80, 22), (100, 24), (140, 31), (160, 42),
+             (180, 49), (200, 67)],
     'options': {
         'deviation': 0.0,
         'doFilter': False
@@ -36,7 +39,14 @@ def findB(a, x_1, y_1):
     return y_1/(a**x_1)
 
 def averageA(data):
-    product = reduce(lambda x, y: x*y, data)
+    print('data A: ', data)
+    product = 0
+    for ds in data:
+        if ds != ():
+            if product is 0:
+                product = ds
+            else:
+                product = product*ds
     return product**(1/len(data))
 
 def average(data):
@@ -47,9 +57,14 @@ def findDeviation(obs, tabel):
     return (obs-tabel)/tabel
 
 def numeric(x):
-    return lambda: x if x >= 0 else x*-1
+    if x >= 0.0:
+        return x
+    else:
+        return x*-1.0
 
 def makeFunction(x, a, b):
+    print('function a', a)
+    print('function b', b)
     return {'f': b*a**x, 'a': a, 'b': b}
 
 def findAcceptable(data, deviation):
@@ -58,38 +73,47 @@ def findAcceptable(data, deviation):
     prevDs = ()
     prevA = 0.0
     for ds in data:
-        if prevDs != ():
-            a = findA(ds[0], ds[1], prevDs[0], prevDs[1])
-            if numeric(findDeviation(a, prevA)) <= deviation:
-                if not tempResult:
+        if ds != ():
+            if prevDs != ():
+                print('ds', ds)
+                print('prev', prevDs)
+                a = findA(ds[0], ds[1], prevDs[0], prevDs[1])
+                if prevA is 0.0:
+                    tempResult.append(ds)
+                elif (numeric(findDeviation(a, prevA)) <= deviation) and (not tempResult):
                     tempResult.append(prevDs)
-                tempResult.append(ds)
-            elif tempResult:
-                results.append(tempResult)
-                tempResult = []
-        prevA = a
-        prevDs = ds
+                    tempResult.append(ds)
+                elif tempResult:
+                    results.append(tempResult)
+                    tempResult = []
+                prevA = a
+            prevDs = ds
     return results
 
 def findFunction(data, x):
     """ returns {function, a, b}. function should be numpy"""
+    print('data: ', data)
     aData = []
     bData = []
     prevDs = ()
     for ds in data:
-        if prevDs != ():
+        if prevDs:
             aData.append(findA(ds[0], ds[1], prevDs[0], prevDs[1]))
-    a = averageA(aData)
+        prevDs = ds
+    if len(aData) > 1:
+        a = averageA(aData)
+    else:
+        return None
     for ds in data:
         bData.append(findB(a, ds[0], ds[1]))
     b = average(bData)
     return makeFunction(x, a, b)
 
-def findManualGraph(data, x, deviation):
+def findManualGraph(data, deviation):
     """ returns a list with {points, function}"""
     results = []
     for dl in findAcceptable(data, deviation):
-        results.append({'f': findFunction(dl, x), 'points': dl})
+        results.append({'f': findFunction(dl, findLinspace(dl)), 'points': dl})
     return results
 
 def findStaringInZero(graphs, x):
@@ -101,6 +125,33 @@ def findStaringInZero(graphs, x):
             bData.append(findB(graph['f']['a'], point[0], point[1]))
         results.append(makeFunction(x, graph['f']['a'], average(bData)))
     return results
+
+def findLinspace(points):
+    xMin = points[len(points)-1][0]
+    xMax = points[0][0]
+    return np.linspace(xMin, xMax)
+
+def manualGraphPanel(parent, manualGraphs):
+    print('manualGraphs: ', manualGraphs)
+    panel = wxmplot.PlotPanel(parent)
+    if manualGraphs != {}:
+        for graph in manualGraphs:
+            print('graph: ', graph)
+            if graph['f'] != None:
+                xdata = findLinspace(graph['points'])
+                panel.plot(xdata, graph['f']['f'])
+            for point in graph['points']:
+                print('point: ', point)
+                panel.scatterplot(np.array([point[0]]), np.array([point[1]]))
+            
+    return panel
+
+
+
+# ACTION CREATORS
+
+def newManualGraph():
+    return {'type': NEW_MANUAL_GRAPH}
 
 def assignNewDict(before, newVals):
     after = deepcopy(before)
@@ -131,8 +182,12 @@ def reducer(state, action):
         return INITIALSTATE
     if action['type'] is REPLACE_INDEX_VALUE:
         data = state['data']
-        data.pop(action['index'])
-        data.insert(action['index'], (action['val1'], action['val2']))
+        if action['index']:
+            data.pop(action['index'])
+        print('index', action['index'])
+        print('val1', action['val1'])
+        print('val2', action['val2'])
+        data.insert(action['index'], (float(action['val1']), float(action['val2'])))
         return assignNewDict(state, {'data': data})
     elif action['type'] is ADD_EMPTY_INDEX:
         data = state['data']
@@ -148,17 +203,53 @@ def reducer(state, action):
         return assignNewDict(state, {'options': {'deviation': action['value']}})
     elif action['type'] is SET_DO_FILTER:
         return assignNewDict(state, {'options': {'doFilter': action['boolean']}})
+    elif action['type'] is NEW_MANUAL_GRAPH:
+        print(state['options']['deviation'])
+        return assignNewDict(state, {
+            'graphs': {
+                'manualGraph': findManualGraph(state['data'], state['options']['deviation'])
+            }
+        })
     else:
         return state
+
+class GraphsPanel(wx.Panel):
+    def __init__(self, parent, graphs):
+        super().__init__(parent)
+        self.graphs = graphs
+        self.graphPanels = []
+        self.OnCreate()
+
+    def OnCreate(self):
+        self.vBox = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(self.vBox)
+
+    def removeVBoxChildren(self):
+        for panel in self.graphPanels:
+            panel.Hide()
+        self.Layout()
+        self.graphPanels = []
+
+    def AddGraphsToVBox(self, graphs):
+        self.vBox.Add(manualGraphPanel(self, graphs), 0, wx.ALL|wx.EXPAND)
+        self.Layout()
+        self.graphPanels.append(manualGraphPanel(self, graphs))
+
+    def Update(self, graphs):
+        super().Update()
+        self.removeVBoxChildren()
+        self.AddGraphsToVBox(graphs)
+
+
 
 class GridFrame(wx.Frame):
     ROWS = 10
 
     def __init__(self, parent, store, **kwargs):
-        super(GridFrame, self).__init__(parent, **kwargs)
+        super().__init__(parent, **kwargs)
 
         self.store = store
-        self.store.dispatch(addEmptyIndex(self.ROWS))
+        #self.store.dispatch(addEmptyIndex(self.ROWS))
         self.OnCreate()
 
     def OnCreate(self):
@@ -246,7 +337,7 @@ class MainFrame(wx.Frame):
 
         mainPanel = wx.Panel(self)
         hboxInputGraph = wx.BoxSizer(wx.HORIZONTAL)
-        graphVbox = wx.BoxSizer(wx.VERTICAL)
+        self.graphVbox = wx.BoxSizer(wx.VERTICAL)
         inputVbox = wx.BoxSizer(wx.VERTICAL)
 
         dataBtn = wx.Button(mainPanel, label='View Data')
@@ -257,8 +348,7 @@ class MainFrame(wx.Frame):
         deviationSpinCtrl = wx.SpinCtrl(mainPanel)
         deviationSpinCtrl.SetRange(0, 100)
 
-        deviationSpinCtrl.Bind(wx.EVT_SPINCTRL,
-            lambda event: self.store.dispatch(setDeviation(event.GetPosition())))
+        deviationSpinCtrl.Bind(wx.EVT_SPINCTRL, self.OnDeviationBtn)
 
         deviationHbox.Add(deviationText, 0, wx.ALL)
         deviationHbox.Add(deviationSpinCtrl, 1, wx.EXPAND|wx.ALL)
@@ -275,19 +365,26 @@ class MainFrame(wx.Frame):
         inputVbox.Add(deviationHbox, 0, wx.EXPAND|wx.ALL, 6)
         inputVbox.Add(filterCheckBox, 0, wx.ALL)
 
+        #Graphs
         graphsText = wx.StaticText(mainPanel, label='Graphs', style=wx.ALIGN_CENTRE_HORIZONTAL)
-        graphScroll = wx.ScrolledWindow(mainPanel)
+        graphsPanel = GraphsPanel(mainPanel, self.store.get_state()['graphs']['manualGraph'])
 
-        graphVbox.Add(graphsText, 0, wx.EXPAND, 8)
-        graphVbox.Add(graphScroll, 1, wx.EXPAND, 8)
+        self.store.subscribe(lambda: graphsPanel.Update(self.store.get_state()['graphs']['manualGraph']))
+
+        self.graphVbox.Add(graphsText, 0, wx.EXPAND, 8)
+        self.graphVbox.Add(graphsPanel, 1, wx.EXPAND, 8)
 
         hboxInputGraph.Add(inputVbox, 3, wx.EXPAND|wx.ALL)
-        hboxInputGraph.Add(graphVbox, 1, wx.EXPAND|wx.ALL)
+        hboxInputGraph.Add(self.graphVbox, 1, wx.EXPAND|wx.ALL)
         mainPanel.SetSizer(hboxInputGraph)
 
         self.SetTitle('Eksponentielle Modeller')
         self.Centre()
         self.Show()
+
+    def OnDeviationBtn(self, event):
+        self.store.dispatch(setDeviation(event.GetPosition()))
+        self.store.dispatch(newManualGraph())
 
     def OnDataBtn(self, event):
         GridFrame(self, self.store)
