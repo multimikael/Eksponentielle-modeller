@@ -82,7 +82,6 @@ def findAcceptable(data, deviation):
         if i is len(data)-2:
             results.append(tempResult)
         elif prevA != 0.0:
-            print(numeric(findDeviation(a, prevA)))
             if numeric(findDeviation(a, prevA)) <= deviation/100:
                 print(True)
                 if tempResult is []:
@@ -97,7 +96,6 @@ def findAcceptable(data, deviation):
 
 def findFunction(data, x):
     """ returns {function, a, b}. function should be numpy"""
-    print('data: ', data)
     aData = []
     bData = []
     prevDs = ()
@@ -114,8 +112,13 @@ def findFunction(data, x):
     b = average(bData)
     return makeFunction(x, a, b)
 
-def findManualGraph(data, deviation):
+def findManualGraph(data, deviation, doFilter):
     """ returns a list with {points, function}"""
+    if doFilter:
+        print(data)
+        data.pop(0)
+        data.pop()
+        print(data)
     results = []
     for dl in findAcceptable(data, deviation):
         results.append({'f': findFunction(dl, findLinspace(dl)), 'points': dl})
@@ -134,21 +137,16 @@ def findStaringInZero(graphs, x):
 def findLinspace(points):
     xMin = points[len(points)-1][0]
     xMax = points[0][0]
-    print("xMin: ", xMin)
-    print('xMax: ', xMax)
     return np.linspace(xMin, xMax)
 
 def manualGraphPanel(parent, manualGraphs):
-    print('manualGraphs: ', manualGraphs)
     panel = wxmplot.PlotPanel(parent, size=(450, 450))
     if manualGraphs != {}:
         for graph in manualGraphs:
-            print('graph: ', graph)
             if graph['f'] != None:
                 xdata = findLinspace(graph['points'])
                 panel.plot(xdata, graph['f']['f'])
             for point in graph['points']:
-                print('point: ', point)
                 panel.scatterplot(np.array([point[0]]), np.array([point[1]]))
     return panel
 
@@ -190,9 +188,6 @@ def reducer(state, action):
         data = state['data']
         if action['index']:
             data.pop(action['index'])
-        print('index', action['index'])
-        print('val1', action['val1'])
-        print('val2', action['val2'])
         data.insert(action['index'], (float(action['val1']), float(action['val2'])))
         return assignNewDict(state, {'data': data})
     elif action['type'] is ADD_EMPTY_INDEX:
@@ -234,7 +229,6 @@ class ThreadWithCallback(threading.Thread):
         self.targetArgs = args
 
     def targetAndCallback(self):
-        print('lol')
         result = self.method(*self.targetArgs)
         if self.callback != None:
             self.callback(result)
@@ -412,8 +406,10 @@ class MainFrame(wx.Frame):
 
     def OnDeviationBtn(self, event):
         self.store.dispatch(setDeviation(event.GetPosition()))
-        self.store.dispatch(findManualGraph(self.store.get_state()['data'],
-            self.store.get_state()['options']['deviation']))
+        self.store.dispatch(newManualGraph(
+            findManualGraph(self.store.get_state()['data'],
+                self.store.get_state()['options']['deviation'], 
+                self.store.get_state()['options']['doFilter'])))
 
     def OnDataBtn(self, event):
         GridFrame(self, self.store)
