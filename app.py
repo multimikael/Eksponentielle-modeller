@@ -349,7 +349,6 @@ class MainFrame(wx.Frame):
         self.Layout()
         self.Fit()
         self.Centre()
-        self.workThread = ThreadWithCallback()
 
     def OnCreate(self):
         menubar = wx.MenuBar()
@@ -413,11 +412,8 @@ class MainFrame(wx.Frame):
 
     def OnDeviationBtn(self, event):
         self.store.dispatch(setDeviation(event.GetPosition()))
-        self.workThread.setTarget(findManualGraph)
-        self.workThread.setTargetArgs((self.store.get_state()['data'],
+        self.store.dispatch(findManualGraph(self.store.get_state()['data'],
             self.store.get_state()['options']['deviation']))
-        self.workThread.setCallback(lambda results: self.store.dispatch(newManualGraph(results)))
-        self.workThread.start()
 
     def OnDataBtn(self, event):
         GridFrame(self, self.store)
